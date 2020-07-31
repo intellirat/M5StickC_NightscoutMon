@@ -30,6 +30,8 @@
 #include <ArduinoJson.h>
 #include "M5StickC_NSconfig.h"
 
+#define HTTPCLIENT_DEFAULT_TCP_TIMEOUT (60000)
+
 const int SPK_pin = 26;
 int spkChannel = 0;
 
@@ -37,7 +39,7 @@ tConfig cfg;
 
 extern const unsigned char WiFi_symbol[];
 
-const char* ntpServer = "pool.ntp.org";
+// const char* ntpServer = "uk.pool.ntp.org";
 struct tm localTimeInfo;
 int lastSec = 61;
 char localTimeStr[30];
@@ -66,7 +68,7 @@ void startupLogo() {
       // M5.Lcd.pushImage(0, 0, 160, 80, (uint16_t *)gImage_logoM5);
       M5.Lcd.drawString("M5 Stack", 55, 10, 2);
       M5.Lcd.drawString("Nightscout monitor", 25, 22, 2);
-      M5.Lcd.drawString("(c) 2019 Martin Lukasek", 0, 50, 2);
+      M5.Lcd.drawString(" v310720 - MartinR mod", 0, 50, 2);
     } else {
       // M5.Lcd.drawJpgFile(SD, cfg.bootPic);
     }
@@ -89,8 +91,11 @@ void printLocalTime() {
   if(!getLocalTime(&localTimeInfo)){
     Serial.println("Failed to obtain time");
     M5.Lcd.println("Failed to obtain time");
+    Serial.println("ZZZZ");
+  Serial.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
     return;
   }
+  Serial.println("ZZZZ");
   Serial.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
   M5.Lcd.println(&localTimeInfo, "%A, %B %d %Y %H:%M:%S");
 }
@@ -101,17 +106,17 @@ void sndAlarm() {
   for(int j=0; j<6; j++) {
     if( cfg.dev_mode ) {
       // play_tone(660, 400, 1);
-      digitalWrite(M5_LED, LOW);  
+      // digitalWrite(M5_LED, LOW);  
       ledcWriteTone(spkChannel, 660);
       delay(1);
-      digitalWrite(M5_LED, HIGH);  
+      // digitalWrite(M5_LED, HIGH);  
       ledcWriteTone(spkChannel, 0);
     } else {
       // play_tone(660, 400, cfg.alarm_volume);
-      digitalWrite(M5_LED, LOW);  
+      // digitalWrite(M5_LED, LOW);  
       ledcWriteTone(spkChannel, 660);
       delay(400);
-      digitalWrite(M5_LED, HIGH);  
+      // digitalWrite(M5_LED, HIGH);  
       ledcWriteTone(spkChannel, 0);
     }
     delay(200);
@@ -123,17 +128,17 @@ void sndWarning() {
   for(int j=0; j<3; j++) {
     if( cfg.dev_mode ) {
       // play_tone(3000, 100, 1);
-      digitalWrite(M5_LED, LOW);  
+      // digitalWrite(M5_LED, LOW);  
       ledcWriteTone(spkChannel, 3000);
       delay(1);
-      digitalWrite(M5_LED, HIGH);  
+      // digitalWrite(M5_LED, HIGH);  
       ledcWriteTone(spkChannel, 0);
     } else {
       // play_tone(3000, 100, cfg.warning_volume);
-      digitalWrite(M5_LED, LOW);  
+      // digitalWrite(M5_LED, LOW);  
       ledcWriteTone(spkChannel, 3000);
       delay(100);
-      digitalWrite(M5_LED, HIGH);  
+      // digitalWrite(M5_LED, HIGH);  
       ledcWriteTone(spkChannel, 0);
     }
     delay(300);
@@ -202,9 +207,9 @@ void wifi_connect() {
     M5.Lcd.println("IP address: ");
     Serial.println(WiFi.localIP());
     M5.Lcd.println(WiFi.localIP());
-
-    configTime(cfg.timeZone, cfg.dst, ntpServer);
-    delay(1000);
+    
+    configTime(cfg.timeZone, cfg.dst, cfg.ntpServer);
+    delay(3000);
     printLocalTime();
 
     Serial.println("Connection done");
@@ -277,7 +282,7 @@ void setup() {
   msCountAlert = millis()-2000;
 
   // update glycemia now
-  msCount = millis()-16000;
+  msCount = millis()-160000;
 }
 
 void drawArrow(int x, int y, int asize, int aangle, int pwidth, int plength, uint16_t color){
@@ -334,6 +339,7 @@ void update_glycemia() {
     Serial.print("[HTTP] begin...\n");
     // configure target server and url
     char NSurl[128];
+//    strcpy(NSurl,"http://");
     strcpy(NSurl,"https://");
     strcat(NSurl,cfg.url);
     if(cfg.sgv_only) {
@@ -422,6 +428,7 @@ void update_glycemia() {
           Serial.println(sensSgv);
           Serial.print("sensDir = ");
           Serial.println(sensDir);
+          
          
           // Serial.print(sensTm.tm_year+1900); Serial.print(" / "); Serial.print(sensTm.tm_mon+1); Serial.print(" / "); Serial.println(sensTm.tm_mday);
           Serial.print("Sensor time: "); Serial.print(sensTm.tm_hour); Serial.print(":"); Serial.print(sensTm.tm_min); Serial.print(":"); Serial.print(sensTm.tm_sec); Serial.print(" DST "); Serial.println(sensTm.tm_isdst);
@@ -490,14 +497,14 @@ void update_glycemia() {
               const size_t propcapacity = JSON_ARRAY_SIZE(2) + JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(4) + JSON_OBJECT_SIZE(6) + 2*JSON_OBJECT_SIZE(7) + 4*JSON_OBJECT_SIZE(8) + 770 + 1000;
               DynamicJsonDocument propdoc(propcapacity);
               DeserializationError propJSONerr = deserializeJson(propdoc, propjson);
-              if(propJSONerr) {
-                Serial.println("Properties JSON parsing failed");
-                Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
-                M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
-                M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
-                M5.Lcd.setTextSize(1);
-                M5.Lcd.drawString("???", 115, 0, 2);
-              } else {
+//              if(propJSONerr) {
+//                Serial.println("Properties JSON parsing failed");
+//                Serial.print("DeserializationError = "); Serial.println(JSONerr.c_str());
+//                M5.Lcd.fillRect(0,24,69,23,TFT_BLACK);
+//                M5.Lcd.setTextColor(TFT_YELLOW, TFT_BLACK);
+//                M5.Lcd.setTextSize(1);
+//                M5.Lcd.drawString("???", 115, 0, 2);
+//              } else {
                 JsonObject iob = propdoc["iob"];
                 float iob_iob = iob["iob"]; // 0
                 const char* iob_display = iob["display"] | "N/A"; // "0"
@@ -527,21 +534,23 @@ void update_glycemia() {
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  M5.Lcd.drawString(iob_displayLine, 0, 71, 1);
+                  M5.Lcd.drawString(iob_displayLine, 13, 71, 1);
                   if(cob_cob>0)
                     M5.Lcd.setTextColor(TFT_WHITE, TFT_BLACK);
                   else
                     M5.Lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-                  M5.Lcd.drawString(cob_displayLine, 60, 71, 1);
+                  M5.Lcd.drawString(cob_displayLine, 83, 71, 1);
                 }
               }
             }
-          }
+//          }
     
           // calculate sensor time difference
           int sensorDifSec=0;
           if(!getLocalTime(&timeinfo)){ // aaa - have to look at it later, sometime it fails here
-            sensorDifSec=24*60*60; // too much
+            // sensorDifSec=24*60*60; // too much
+            Serial.print("Local time: "); Serial.print(timeinfo.tm_hour); Serial.print(":"); Serial.print(timeinfo.tm_min); Serial.print(":"); Serial.print(timeinfo.tm_sec); Serial.print(" DST "); Serial.println(timeinfo.tm_isdst);
+            sensorDifSec=difftime(mktime(&timeinfo), sensTime);
           } else {
             Serial.print("Local time: "); Serial.print(timeinfo.tm_hour); Serial.print(":"); Serial.print(timeinfo.tm_min); Serial.print(":"); Serial.print(timeinfo.tm_sec); Serial.print(" DST "); Serial.println(timeinfo.tm_isdst);
             sensorDifSec=difftime(mktime(&timeinfo), sensTime);
@@ -676,11 +685,12 @@ void update_glycemia() {
           M5.Lcd.setTextSize(1);
           // M5.Lcd.setFreeFont(FSSB12);
           Serial.print("sensSgv="); Serial.print(sensSgv); Serial.print(", cfg.snd_alarm="); Serial.println(cfg.snd_alarm); 
+          Serial.println("= Success - going back to loop - 120s delay before next poll");
           if((sensSgv<=cfg.snd_alarm) && (sensSgv>=0.1)) {
             // red alarm state
             // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
             Serial.println("ALARM LOW");
-            led_alert = 3;
+            led_alert = 0;
             // M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
             // M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
             // int stw=M5.Lcd.textWidth(tmpStr);
@@ -694,7 +704,7 @@ void update_glycemia() {
               // yellow warning state
               // M5.Lcd.fillRect(110, 220, 100, 20, TFT_YELLOW);
               Serial.println("WARNING LOW");
-              led_alert = 1;
+              led_alert = 0;
               // M5.Lcd.fillRect(0, 220, 320, 20, TFT_YELLOW);
               // M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
               // int stw=M5.Lcd.textWidth(tmpStr);
@@ -708,7 +718,7 @@ void update_glycemia() {
                 // red alarm state
                 // M5.Lcd.fillRect(110, 220, 100, 20, TFT_RED);
                 Serial.println("ALARM HIGH");
-                led_alert = 3;
+                led_alert = 0;
                 // M5.Lcd.fillRect(0, 220, 320, 20, TFT_RED);
                 // M5.Lcd.setTextColor(TFT_BLACK, TFT_RED);
                 // int stw=M5.Lcd.textWidth(tmpStr);
@@ -722,7 +732,7 @@ void update_glycemia() {
                   // yellow warning state
                   // M5.Lcd.fillRect(110, 220, 100, 20, TFT_YELLOW);
                   Serial.println("WARNING HIGH");
-                  led_alert = 1;
+                  led_alert = 0;
                   // M5.Lcd.fillRect(0, 220, 320, 20, TFT_YELLOW);
                   // M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
                   // int stw=M5.Lcd.textWidth(tmpStr);
@@ -736,7 +746,7 @@ void update_glycemia() {
                     // yellow warning state
                     // M5.Lcd.fillRect(110, 220, 100, 20, TFT_YELLOW);
                     Serial.println("WARNING NO READINGS");
-                    led_alert = 1;
+                    led_alert = 0;
                     // M5.Lcd.fillRect(0, 220, 320, 20, TFT_YELLOW);
                     // M5.Lcd.setTextColor(TFT_BLACK, TFT_YELLOW);
                     // int stw=M5.Lcd.textWidth(tmpStr);
@@ -783,9 +793,9 @@ void update_glycemia() {
     } else {
       String errstr = String("[HTTP] GET failed, error: " + String(http.errorToString(httpCode).c_str()));
       Serial.println(errstr);
-      M5.Lcd.setCursor(0, 23);
-      M5.Lcd.setTextSize(1);
-      M5.Lcd.println(errstr);
+//      M5.Lcd.setCursor(0, 23);
+//      M5.Lcd.setTextSize(1);
+//      M5.Lcd.println(errstr);
       wasError = 1;
     }
   
@@ -793,13 +803,14 @@ void update_glycemia() {
   }
 }
 
+
 // the loop routine runs over and over again forever
 void loop(){
-  delay(20);
+  delay(200);
   buttons_test();
 
   // update glycemia every 15s
-  if(millis()-msCount>15000) {
+  if(millis()-msCount>120000) {
     update_glycemia();
     msCount = millis();  
   } else {
@@ -828,17 +839,17 @@ void loop(){
     if(led_alert) {
       if( millis()-msCountAlert>(500/led_alert) ) {
         if(digitalRead(M5_LED)==LOW) {
-          digitalWrite(M5_LED, HIGH);  
+          // digitalWrite(M5_LED, HIGH);  
           // ledcWriteTone(spkChannel, 0);
         } else {
-          digitalWrite(M5_LED, LOW);  
+          // digitalWrite(M5_LED, LOW);  
           // ledcWriteTone(spkChannel, 1000);
         }
         // Serial.println(digitalRead(M5_LED));
         msCountAlert = millis();
       }
     } else {
-      digitalWrite(M5_LED, HIGH);
+      // digitalWrite(M5_LED, HIGH);
       // ledcWriteTone(spkChannel, 0);
     }
   }

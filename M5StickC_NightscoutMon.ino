@@ -68,7 +68,7 @@ void startupLogo() {
       // M5.Lcd.pushImage(0, 0, 160, 80, (uint16_t *)gImage_logoM5);
       M5.Lcd.drawString("M5 Stack", 55, 10, 2);
       M5.Lcd.drawString("Nightscout monitor", 25, 22, 2);
-      M5.Lcd.drawString(" v310720 - MartinR mod", 0, 50, 2);
+      M5.Lcd.drawString("v200805 - MartinR mod", 0, 50, 2);
     } else {
       // M5.Lcd.drawJpgFile(SD, cfg.bootPic);
     }
@@ -788,6 +788,7 @@ void update_glycemia() {
         M5.Lcd.setCursor(0, 23);
         M5.Lcd.setTextSize(1);
         M5.Lcd.println(errstr);
+        msCount = millis()-160000;
         wasError = 1;
       }
     } else {
@@ -796,6 +797,7 @@ void update_glycemia() {
 //      M5.Lcd.setCursor(0, 23);
 //      M5.Lcd.setTextSize(1);
 //      M5.Lcd.println(errstr);
+      msCount = millis()-160000;
       wasError = 1;
     }
   
